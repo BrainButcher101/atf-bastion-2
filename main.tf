@@ -7,13 +7,13 @@ resource "aws_launch_template" "bastionhost" {
   key_name    = var.ssh_key_name
 
   iam_instance_profile {
-    name = aws_iam_instance_profile.bastionhost.name
+    name = aws_iam_instance_profile.bastion-iam.name
   }
 
   network_interfaces {
     associate_public_ip_address = true
     delete_on_termination       = true
-    security_groups             = [aws_security_group.bastionhost.id]
+    security_groups             = [aws_security_group.bastion-sg.id]
   }
 
   block_device_mappings {
@@ -97,28 +97,28 @@ resource "aws_autoscaling_schedule" "asg_scale_down" {
   count = var.enable_asg_scale_down ? 1 : 0
 
   scheduled_action_name  = "SG-bastionhost_asg_scale_down"
-  autoscaling_group_name = aws_autoscaling_group.bastion.name
+  autoscaling_group_name = aws_autoscaling_group.bastion-asg.name
   min_size               = var.asg_scale_down_min_size
   max_size               = var.asg_scale_down_max_size
   desired_capacity       = var.asg_scale_down_desired_capacity
   recurrence             = var.asg_scale_down_recurrence
   time_zone              = var.time_zone
 
-  depends_on = [aws_autoscaling_group.bastion]
+  depends_on = [aws_autoscaling_group.bastion-asg]
 }
 
 resource "aws_autoscaling_schedule" "asg_scale_up" {
   count = var.enable_asg_scale_up ? 1 : 0
 
   scheduled_action_name  = "SG-bastionhost_asg_scale_up"
-  autoscaling_group_name = aws_autoscaling_group.bastion.name
+  autoscaling_group_name = aws_autoscaling_group.bastion-asg.name
   min_size               = var.asg_scale_up_min_size
   max_size               = var.asg_scale_up_max_size
   desired_capacity       = var.asg_scale_up_desired_capacity
   recurrence             = var.asg_scale_up_recurrence
   time_zone              = var.time_zone
 
-  depends_on = [aws_autoscaling_group.bastion]
+  depends_on = [aws_autoscaling_group.bastion-asg]
 }
 
 
@@ -158,7 +158,7 @@ resource "aws_security_group" "bastion-sg" {
 
 resource "aws_iam_instance_profile" "bastion-iam" {
   name = "${var.name_prefix}-bastion-instance-profile"
-  role = aws_iam_role.bastion-iam.name
+  role = aws_iam_role.bastion-role.name
 
   tags = var.tags
 }
@@ -176,7 +176,7 @@ resource "aws_iam_role_policy" "iam_bastion_policy" {
   count = var.hosted_zone_id != "" ? 1 : 0
 
   name = "custom-bastion-policy"
-  role = aws_iam_role.bastion.name
+  role = aws_iam_role.bastion-role.name
 
   policy = data.aws_iam_policy_document.bastion_role_policy[0].json
 }
